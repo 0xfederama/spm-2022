@@ -1,3 +1,3 @@
 # SPM 2022
 
-Assigments and final project
+Assignments and final project
