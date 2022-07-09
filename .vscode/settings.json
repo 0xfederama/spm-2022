@@ -82,6 +82,12 @@
 		"utility": "cpp",
 		"stop_token": "cpp",
 		"syncstream": "cpp",
-		"cinttypes": "cpp"
+		"cinttypes": "cpp",
+		"filesystem": "cpp",
+		"__tree": "cpp",
+		"list": "cpp",
+		"map": "cpp",
+		"set": "cpp",
+		"valarray": "cpp"
 	}
 }

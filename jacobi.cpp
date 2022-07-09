@@ -1,63 +1,18 @@
 #include <barrier>
-#include <cmath>
-#include <iostream>
+#include <ff/ff.hpp>
+#include <ff/parallel_for.hpp>
 #include <thread>
-#include <vector>
 
-void print_matrix(std::vector<std::vector<double>> A, size_t n,
-				  std::string name) {
-	std::cout << "Matrix " << name << ":" << std::endl;
-	for (size_t i = 0; i < n; i++) {
-		for (size_t j = 0; j < n; j++) {
-			std::cout << A[i][j] << " ";
-		}
-		std::cout << std::endl;
-	}
-}
+#include "utils.cpp"
 
-void print_vector(std::vector<double> a, std::string name) {
-	std::cout << name << ": ";
-	for (size_t i = 0; i < a.size(); i++) {
-		std::cout << a[i] << " ";
-	}
-	std::cout << std::endl;
-}
-
-bool check_diagonally_dominant(std::vector<std::vector<double>> A, size_t n) {
-	for (size_t i = 0; i < n; i++) {
-		double row_sum = 0;
-		for (size_t j = 0; j < n; j++) {
-			if (i != j) {
-				row_sum += abs(A[i][j]);
-			}
-		}
-		if (row_sum > abs(A[i][i])) {
-			return false;
-		}
-	}
-	return true;
-}
-
-void create_matrix(std::vector<std::vector<double>> &A, size_t n) {
-	for (size_t i = 0; i < n; i++) {
-		double sum = 0;
-		for (size_t j = 0; j < n; j++) {
-			if (i != j) {
-				A[i][j] = (rand() % 256) - 128;	 // To have numbers < 0
-				sum += fabs(A[i][j]);
-			}
-		}
-		// To make sure the matrix is diagonally dominant
-		A[i][i] = (rand() % 128) + sum;
-	}
-}
+const int max_iter = 100;
 
 void jacobi_seq(std::vector<std::vector<double>> &A, std::vector<double> B,
-				std::vector<double> &x_old, int max_iter) {
+				std::vector<double> &x_old) {
 	size_t n = B.size();
 	std::vector<double> x_new(n);
-	for (size_t k = 0; k < max_iter; k++) {
-		for (size_t i = 0; i < n; i++) {
+	for (size_t k = 0; k < (size_t)max_iter; k++) {
+		for (size_t i = 0; i < (size_t)n; i++) {
 			// Find the sum of all values except the one on the diagonal
 			double sum_j = 0;
 			for (size_t j = 0; j < n; j++) {
@@ -76,14 +31,15 @@ void jacobi_seq(std::vector<std::vector<double>> &A, std::vector<double> B,
 
 void jacobi_par_threads(std::vector<std::vector<double>> &A,
 						std::vector<double> B, std::vector<double> &x_old,
-						int max_iter, int nw) {
+						int nw) {
 	size_t n = B.size();
 	std::vector<double> x_new(n);
 	std::vector<std::thread> threads(nw);
 
 	// Create the barrier
+	int iter = max_iter;
 	std::barrier sync_point(nw, [&]() {
-		max_iter--;
+		iter--;
 		// Update x_old
 		x_old = x_new;
 	});
@@ -94,18 +50,18 @@ void jacobi_par_threads(std::vector<std::vector<double>> &A,
 
 	// Create the pair of indices for the ranges of the threads
 	std::vector<std::pair<size_t, size_t>> ranges(nw);
-	for (size_t i = 0; i < nw; i++) {
+	for (size_t i = 0; i < (size_t)nw; i++) {
 		start = i == 0 ? 0 : end + 1;
 		end	  = start + chunk_size;
-		if (end >= n) end = n - 1;
+		if ((size_t)end >= n) end = n - 1;
 		ranges[i] = std::make_pair(start, end);
 	}
 
 	// Launch the threads
-	for (size_t i = 0; i < nw; i++) {
+	for (size_t i = 0; i < (size_t)nw; i++) {
 		threads[i] = std::thread(
 			[&](std::pair<size_t, size_t> range) {
-				while (max_iter > 0) {
+				while (iter > 0) {
 					// Iterate on the rows of the selected chunk
 					for (size_t j = range.first; j <= range.second; j++) {
 						// Find the sum of all values except the one on the
@@ -129,5 +85,35 @@ void jacobi_par_threads(std::vector<std::vector<double>> &A,
 	// Join the threads
 	for (auto &t : threads) {
 		t.join();
+	}
+}
+
+void jacobi_par_ff(std::vector<std::vector<double>> &A, std::vector<double> B,
+				   std::vector<double> &x_old, int nw) {
+	size_t n = B.size();
+	std::vector<double> x_new(n);
+	std::vector<std::thread> threads(nw);
+
+	// Create ParallelFor instance
+	ff::ParallelFor par_for(nw);
+
+	for (size_t k = 0; k < (size_t)max_iter; k++) {
+		// Parallel for
+		par_for.parallel_for(
+			0, n, 1, 0,
+			[&](size_t i) {
+				// Jacobi pass
+				double sum_j = 0;
+				for (size_t j = 0; j < (size_t)n; j++) {
+					if (i != j) {
+						sum_j += A[i][j] * x_old[j];
+					}
+				}
+				x_new[i] = (1 / A[i][i]) * (B[i] - sum_j);
+			},
+			nw);
+
+		// Update x_old
+		x_old = x_new;
 	}
 }

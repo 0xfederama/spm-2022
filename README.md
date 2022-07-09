@@ -1,3 +1,4 @@
-# SPM 2022
+# Jacobi parallel mathod
 
-Assignments and final project
+Compile with `make` or `make debug` if you want the debug info.
+Run with `./jacobi <matrix-size> <seed> <nw>` to create a random matrix with random elements with `seed` and `nw` number of workers
