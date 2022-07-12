@@ -24,16 +24,16 @@ int main(int argc, char *argv[]) {
 	int n	 = std::stoi(argv[1]);
 	int seed = std::stoi(argv[2]);
 	int nw	 = std::stoi(argv[3]);
-
-	std::vector<std::vector<double>> A(n, std::vector<double>(n, 0));
-	std::vector<double> B(n);
-	std::vector<double> x(n);
 	if (nw > n) {
 		std::cerr << "Number of workers must be smaller than the size of "
 					 "the matrix."
 				  << std::endl;
 		return (-1);
 	}
+
+	std::vector<std::vector<double>> A(n, std::vector<double>(n, 0));
+	std::vector<double> B(n);
+	std::vector<double> x(n);
 	// Create matrix A and B
 	if (seed != 0) srand(seed);
 	else srand(time(0));
@@ -52,6 +52,7 @@ int main(int argc, char *argv[]) {
 	INIT_TIME;
 
 	// SEQUENTIAL EXECUTION
+#ifdef JACOBI_SEQ
 	// Set x to 0
 	std::fill(x.begin(), x.end(), 0);
 	BEGIN_TIME;
@@ -66,12 +67,14 @@ int main(int argc, char *argv[]) {
 	}
 	std::cout << std::endl;
 #endif
+#endif
 
 	// PARALLEL EXECUTION
+#ifdef JACOBI_STD
 	// Reset x
 	std::fill(x.begin(), x.end(), 0);
 	BEGIN_TIME;
-	jacobi_par_threads(A, B, x, nw);
+	jacobi_par_std(A, B, x, nw);
 	END_TIME;
 	auto threads_time = usec;
 	std::cout << "Threads:    " << threads_time << " usecs" << std::endl;
@@ -82,8 +85,10 @@ int main(int argc, char *argv[]) {
 	}
 	std::cout << std::endl;
 #endif
+#endif
 
 	// FASTFLOW EXECUTION
+#ifdef JACOBI_FF
 	// Reset x
 	std::fill(x.begin(), x.end(), 0);
 	BEGIN_TIME;
@@ -98,13 +103,7 @@ int main(int argc, char *argv[]) {
 	}
 	std::cout << std::endl;
 #endif
-
-	// Calculate speedups
-	// std::cout << "\nSPEEDUP:" << std::endl;
-	// std::cout << "Threads:  " << ((float)seq_time) / ((float)threads_time)
-	// 		  << std::endl;
-	// std::cout << "FastFlow: " << ((float)seq_time) / ((float)ff_time)
-	// 		  << std::endl;
+#endif
 
 	return 0;
 }

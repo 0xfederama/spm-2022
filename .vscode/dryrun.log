@@ -1,0 +1,5 @@
+make --dry-run --always-make --keep-going --print-directory
+make: Entering directory `/Users/federico/Desktop/Dropbox/university/spm/lab/project'
+g++ -std=c++20 -O3 -pthread -DJACOBI_SEQ -DJACOBI_STD -DJACOBI_FF -o jacobi main.cpp
+make: Leaving directory `/Users/federico/Desktop/Dropbox/university/spm/lab/project'
+ 

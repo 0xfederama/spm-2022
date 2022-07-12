@@ -5,7 +5,7 @@
 
 #include "utils.cpp"
 
-const int max_iter = 100;
+const int max_iter = 128;
 
 void jacobi_seq(std::vector<std::vector<double>> &A, std::vector<double> B,
 				std::vector<double> &x_old) {
@@ -29,7 +29,7 @@ void jacobi_seq(std::vector<std::vector<double>> &A, std::vector<double> B,
 	}
 }
 
-void jacobi_par_threads(std::vector<std::vector<double>> &A,
+void jacobi_par_std(std::vector<std::vector<double>> &A,
 						std::vector<double> B, std::vector<double> &x_old,
 						int nw) {
 	size_t n = B.size();
